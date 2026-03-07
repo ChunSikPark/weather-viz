@@ -1,12 +1,19 @@
 {
-  "generated_at": "2026-03-07T19:17:48Z",
+  "generated_at": "2026-03-07T19:37:00Z",
   "files": [
+    {
+      "path": "data/monthly/solar_monthly_2023.json",
+      "type": "solar",
+      "granularity": "monthly",
+      "period": "2023",
+      "size_kb": 2.0
+    },
     {
       "path": "data/monthly/solar_monthly_2024.json",
       "type": "solar",
       "granularity": "monthly",
       "period": "2024",
-      "size_kb": 2.0
+      "size_kb": 12.4
     },
     {
       "path": "data/monthly/solar_monthly_2025.json",
@@ -16,11 +23,18 @@
       "size_kb": 12.4
     },
     {
+      "path": "data/monthly/wind_monthly_2023.json",
+      "type": "wind",
+      "granularity": "monthly",
+      "period": "2023",
+      "size_kb": 2.0
+    },
+    {
       "path": "data/monthly/wind_monthly_2024.json",
       "type": "wind",
       "granularity": "monthly",
       "period": "2024",
-      "size_kb": 2.1
+      "size_kb": 11.3
     },
     {
       "path": "data/monthly/wind_monthly_2025.json",
@@ -30,11 +44,18 @@
       "size_kb": 11.3
     },
     {
+      "path": "data/daily/solar_daily_2023.json",
+      "type": "solar",
+      "granularity": "daily",
+      "period": "2023",
+      "size_kb": 2.0
+    },
+    {
       "path": "data/daily/solar_daily_2024.json",
       "type": "solar",
       "granularity": "daily",
       "period": "2024",
-      "size_kb": 2.0
+      "size_kb": 324.8
     },
     {
       "path": "data/daily/solar_daily_2025.json",
@@ -44,11 +65,18 @@
       "size_kb": 309.9
     },
     {
+      "path": "data/daily/wind_daily_2023.json",
+      "type": "wind",
+      "granularity": "daily",
+      "period": "2023",
+      "size_kb": 2.0
+    },
+    {
       "path": "data/daily/wind_daily_2024.json",
       "type": "wind",
       "granularity": "daily",
       "period": "2024",
-      "size_kb": 2.1
+      "size_kb": 294.2
     },
     {
       "path": "data/daily/wind_daily_2025.json",
@@ -58,11 +86,88 @@
       "size_kb": 280.8
     },
     {
+      "path": "data/hourly/solar_hourly_2024_01.json",
+      "type": "solar",
+      "granularity": "hourly",
+      "period": "2024-01",
+      "size_kb": 499.4
+    },
+    {
+      "path": "data/hourly/solar_hourly_2024_02.json",
+      "type": "solar",
+      "granularity": "hourly",
+      "period": "2024-02",
+      "size_kb": 482.6
+    },
+    {
+      "path": "data/hourly/solar_hourly_2024_03.json",
+      "type": "solar",
+      "granularity": "hourly",
+      "period": "2024-03",
+      "size_kb": 515.0
+    },
+    {
+      "path": "data/hourly/solar_hourly_2024_04.json",
+      "type": "solar",
+      "granularity": "hourly",
+      "period": "2024-04",
+      "size_kb": 532.3
+    },
+    {
+      "path": "data/hourly/solar_hourly_2024_05.json",
+      "type": "solar",
+      "granularity": "hourly",
+      "period": "2024-05",
+      "size_kb": 559.1
+    },
+    {
+      "path": "data/hourly/solar_hourly_2024_06.json",
+      "type": "solar",
+      "granularity": "hourly",
+      "period": "2024-06",
+      "size_kb": 5.7
+    },
+    {
+      "path": "data/hourly/solar_hourly_2024_07.json",
+      "type": "solar",
+      "granularity": "hourly",
+      "period": "2024-07",
+      "size_kb": 564.4
+    },
+    {
+      "path": "data/hourly/solar_hourly_2024_08.json",
+      "type": "solar",
+      "granularity": "hourly",
+      "period": "2024-08",
+      "size_kb": 551.1
+    },
+    {
+      "path": "data/hourly/solar_hourly_2024_09.json",
+      "type": "solar",
+      "granularity": "hourly",
+      "period": "2024-09",
+      "size_kb": 517.6
+    },
+    {
+      "path": "data/hourly/solar_hourly_2024_10.json",
+      "type": "solar",
+      "granularity": "hourly",
+      "period": "2024-10",
+      "size_kb": 522.6
+    },
+    {
+      "path": "data/hourly/solar_hourly_2024_11.json",
+      "type": "solar",
+      "granularity": "hourly",
+      "period": "2024-11",
+      "size_kb": 487.5
+    },
+    {
       "path": "data/hourly/solar_hourly_2024_12.json",
       "type": "solar",
       "granularity": "hourly",
       "period": "2024-12",
-      "size_kb": 4.5
+      "size_kb": 495.0
     },
     {
       "path": "data/hourly/solar_hourly_2025_01.json",
@@ -149,11 +254,88 @@
       "size_kb": 13.6
     },
     {
+      "path": "data/hourly/wind_hourly_2024_01.json",
+      "type": "wind",
+      "granularity": "hourly",
+      "period": "2024-01",
+      "size_kb": 609.3
+    },
+    {
+      "path": "data/hourly/wind_hourly_2024_02.json",
+      "type": "wind",
+      "granularity": "hourly",
+      "period": "2024-02",
+      "size_kb": 570.8
+    },
+    {
+      "path": "data/hourly/wind_hourly_2024_03.json",
+      "type": "wind",
+      "granularity": "hourly",
+      "period": "2024-03",
+      "size_kb": 593.7
+    },
+    {
+      "path": "data/hourly/wind_hourly_2024_04.json",
+      "type": "wind",
+      "granularity": "hourly",
+      "period": "2024-04",
+      "size_kb": 595.9
+    },
+    {
+      "path": "data/hourly/wind_hourly_2024_05.json",
+      "type": "wind",
+      "granularity": "hourly",
+      "period": "2024-05",
+      "size_kb": 604.4
+    },
+    {
+      "path": "data/hourly/wind_hourly_2024_06.json",
+      "type": "wind",
+      "granularity": "hourly",
+      "period": "2024-06",
+      "size_kb": 7.1
+    },
+    {
+      "path": "data/hourly/wind_hourly_2024_07.json",
+      "type": "wind",
+      "granularity": "hourly",
+      "period": "2024-07",
+      "size_kb": 599.3
+    },
+    {
+      "path": "data/hourly/wind_hourly_2024_08.json",
+      "type": "wind",
+      "granularity": "hourly",
+      "period": "2024-08",
+      "size_kb": 601.9
+    },
+    {
+      "path": "data/hourly/wind_hourly_2024_09.json",
+      "type": "wind",
+      "granularity": "hourly",
+      "period": "2024-09",
+      "size_kb": 584.7
+    },
+    {
+      "path": "data/hourly/wind_hourly_2024_10.json",
+      "type": "wind",
+      "granularity": "hourly",
+      "period": "2024-10",
+      "size_kb": 607.4
+    },
+    {
+      "path": "data/hourly/wind_hourly_2024_11.json",
+      "type": "wind",
+      "granularity": "hourly",
+      "period": "2024-11",
+      "size_kb": 594.6
+    },
+    {
       "path": "data/hourly/wind_hourly_2024_12.json",
       "type": "wind",
       "granularity": "hourly",
       "period": "2024-12",
-      "size_kb": 6.2
+      "size_kb": 609.5
     },
     {
       "path": "data/hourly/wind_hourly_2025_01.json",
@@ -304,7 +486,7 @@
     "Southwest"
   ],
   "date_range": {
-    "start": "2024-12-31T00:00:00Z",
+    "start": "2023-12-31T00:00:00Z",
     "end": "2025-12-31T00:00:00Z"
   }
 }

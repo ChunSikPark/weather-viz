@@ -7,10 +7,11 @@ granularities, and writes partitioned JSON files for the visualization.
 """
 
 import json
+import glob as globmod
 import os
 import sys
 from pathlib import Path
-from datetime import datetime
+from datetime import datetime, timezone
 
 import numpy as np
 import pandas as pd
@@ -21,6 +22,10 @@ DATA_DIR = PROJECT_ROOT / "data"
 MONTHLY_DIR = DATA_DIR / "monthly"
 DAILY_DIR = DATA_DIR / "daily"
 HOURLY_DIR = DATA_DIR / "hourly"
+FORECAST_DIR = DATA_DIR / "forecast"
+
+# Simulation output directory (where Historical_* and Forecast_* CSVs live)
+SIM_OUTPUT_DIR = Path(r"D:\Project\OneDrive - Texas A&M University\Desktop\Research Project\Weather\Simulation\Function")
 
 # States to exclude (non-contiguous US)
 EXCLUDE_STATES = {"AK", "HI"}
@@ -190,7 +195,7 @@ def build_json_payload(agg: dict, mw_df_states, mw_df_isos, mw_df_national,
             "type": energy_type,
             "granularity": granularity,
             "period": period,
-            "generated_at": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
+            "generated_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
         },
         "timestamps": timestamps,
         "states": states_dict,
@@ -218,7 +223,7 @@ def generate_partitioned_files(agg: dict, energy_type: str):
 
     # Determine year range
     years = sorted(state_mw.index.year.unique())
-    now_year = datetime.utcnow().year
+    now_year = datetime.now(timezone.utc).year
     hourly_cutoff_year = now_year - 2  # hourly data for recent 2 years
 
     print(f"\nGenerating {energy_type} files for years: {years[0]}–{years[-1]}")
@@ -274,13 +279,87 @@ def generate_partitioned_files(agg: dict, energy_type: str):
             write_json(payload, HOURLY_DIR / f"{energy_type}_hourly_{year}_{month:02d}.json")
 
 
+# ── Forecast Output ──────────────────────────────────────────────────────────
+
+def generate_forecast_files(agg: dict, energy_type: str):
+    """
+    Generate forecast JSON files. Overwrites previous forecast data.
+    Forecast data is always hourly (up to 16 days ahead).
+    """
+    state_mw = agg["by_state"]["mw"]
+    iso_mw = agg["by_iso"]["mw"]
+    nat_mw = agg["national"]["mw"]
+
+    print(f"\nGenerating {energy_type} forecast files...")
+
+    # Forecast is a single file (small — up to 16 days × 24h = 384 points)
+    payload = build_json_payload(
+        agg, state_mw, iso_mw, nat_mw,
+        energy_type, "hourly", "forecast",
+    )
+    payload["meta"]["forecast"] = True
+    write_json(payload, FORECAST_DIR / f"{energy_type}_forecast.json")
+
+
+def discover_csv_files(sim_dir: Path, mode: str) -> tuple[list, list]:
+    """
+    Discover simulation output CSVs in the sim directory.
+
+    Args:
+        sim_dir: directory containing simulation CSVs
+        mode: 'historical' or 'forecast'
+
+    Returns:
+        (wind_csvs, solar_csvs) — lists of Path objects
+    """
+    wind_csvs = []
+    solar_csvs = []
+
+    if mode == "forecast":
+        pattern_wind = str(sim_dir / "Forecast_*_wind.csv")
+        pattern_solar = str(sim_dir / "Forecast_*_solar.csv")
+    else:
+        pattern_wind = str(sim_dir / "Historical_*_wind.csv")
+        pattern_solar = str(sim_dir / "Historical_*_solar.csv")
+
+    wind_csvs = sorted(globmod.glob(pattern_wind))
+    solar_csvs = sorted(globmod.glob(pattern_solar))
+
+    return wind_csvs, solar_csvs
+
+
+def merge_csvs(csv_paths: list) -> tuple[dict, pd.DataFrame]:
+    """
+    Parse and merge multiple CSVs with the same column structure.
+    Used for combining per-year Historical CSVs into one dataset.
+    """
+    if len(csv_paths) == 1:
+        return parse_csv(csv_paths[0])
+
+    all_meta = None
+    all_ts = []
+
+    for path in csv_paths:
+        meta, ts = parse_csv(path)
+        if all_meta is None:
+            all_meta = meta
+        all_ts.append(ts)
+
+    merged_ts = pd.concat(all_ts).sort_index()
+    # Remove duplicate timestamps (overlapping quarters)
+    merged_ts = merged_ts[~merged_ts.index.duplicated(keep="first")]
+
+    print(f"  Merged {len(csv_paths)} files -> {len(merged_ts)} timestamps")
+    return all_meta, merged_ts
+
+
 # ── Manifest ─────────────────────────────────────────────────────────────────
 
 def generate_manifest():
     """Scan data/ directory and build manifest.json."""
     print("\nGenerating manifest.json...")
     manifest = {
-        "generated_at": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "generated_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
         "files": [],
         "available_states": [],
         "available_isos": [],
@@ -292,7 +371,7 @@ def generate_manifest():
     min_ts = None
     max_ts = None
 
-    for subdir in ["monthly", "daily", "hourly"]:
+    for subdir in ["monthly", "daily", "hourly", "forecast"]:
         dir_path = DATA_DIR / subdir
         if not dir_path.exists():
             continue
@@ -337,41 +416,106 @@ def main():
     import argparse
 
     parser = argparse.ArgumentParser(description="Preprocess simulation CSVs into visualization JSON.")
-    parser.add_argument("--wind-csv", type=str, help="Path to wind CSV file")
-    parser.add_argument("--solar-csv", type=str, help="Path to solar CSV file")
+    parser.add_argument("--mode", choices=["historical", "forecast", "auto"], default="auto",
+                        help="Processing mode: historical (merged CSVs), forecast (latest forecast), auto (detect)")
+    parser.add_argument("--wind-csv", type=str, help="Path to wind CSV file (historical single-file mode)")
+    parser.add_argument("--solar-csv", type=str, help="Path to solar CSV file (historical single-file mode)")
+    parser.add_argument("--sim-dir", type=str, help="Directory with per-year Historical_*/Forecast_* CSVs")
     args = parser.parse_args()
 
-    # Default paths
-    wind_csv = args.wind_csv or str(PROJECT_ROOT / "EIA860_wind_ts_results_ISO.csv")
-    solar_csv = args.solar_csv or str(PROJECT_ROOT / "EIA860_solar_ts_results_ISO.csv")
+    sim_dir = Path(args.sim_dir) if args.sim_dir else SIM_OUTPUT_DIR
 
     # Ensure output dirs exist
-    for d in [MONTHLY_DIR, DAILY_DIR, HOURLY_DIR]:
+    for d in [MONTHLY_DIR, DAILY_DIR, HOURLY_DIR, FORECAST_DIR]:
         d.mkdir(parents=True, exist_ok=True)
 
-    # Process wind
-    if os.path.exists(wind_csv):
-        print("\n" + "=" * 60)
-        print("PROCESSING WIND DATA")
-        print("=" * 60)
-        wind_meta, wind_ts = parse_csv(wind_csv)
-        wind_agg = aggregate(wind_meta, wind_ts)
-        generate_partitioned_files(wind_agg, "wind")
-    else:
-        print(f"Wind CSV not found: {wind_csv}")
+    # ── Auto-detect mode ───────────────────────────────────────────────
+    mode = args.mode
+    if mode == "auto":
+        # If explicit CSV paths given, use single-file historical mode
+        if args.wind_csv or args.solar_csv:
+            mode = "historical"
+        else:
+            # Check for forecast CSVs first (higher priority for daily runs)
+            fc_wind, fc_solar = discover_csv_files(sim_dir, "forecast")
+            if fc_wind or fc_solar:
+                mode = "forecast"
+            else:
+                mode = "historical"
+        print(f"Auto-detected mode: {mode}")
 
-    # Process solar
-    if os.path.exists(solar_csv):
-        print("\n" + "=" * 60)
-        print("PROCESSING SOLAR DATA")
-        print("=" * 60)
-        solar_meta, solar_ts = parse_csv(solar_csv)
-        solar_agg = aggregate(solar_meta, solar_ts)
-        generate_partitioned_files(solar_agg, "solar")
-    else:
-        print(f"Solar CSV not found: {solar_csv}")
+    # ── Historical mode ────────────────────────────────────────────────
+    if mode == "historical":
+        # Try explicit single-file paths first, then discover per-year files
+        wind_csv = args.wind_csv or str(PROJECT_ROOT / "EIA860_wind_ts_results_ISO.csv")
+        solar_csv = args.solar_csv or str(PROJECT_ROOT / "EIA860_solar_ts_results_ISO.csv")
 
-    # Generate manifest
+        hist_wind, hist_solar = discover_csv_files(sim_dir, "historical")
+
+        # Wind
+        if hist_wind:
+            print("\n" + "=" * 60)
+            print(f"PROCESSING WIND DATA ({len(hist_wind)} historical files)")
+            print("=" * 60)
+            wind_meta, wind_ts = merge_csvs(hist_wind)
+            wind_agg = aggregate(wind_meta, wind_ts)
+            generate_partitioned_files(wind_agg, "wind")
+        elif os.path.exists(wind_csv):
+            print("\n" + "=" * 60)
+            print("PROCESSING WIND DATA (single file)")
+            print("=" * 60)
+            wind_meta, wind_ts = parse_csv(wind_csv)
+            wind_agg = aggregate(wind_meta, wind_ts)
+            generate_partitioned_files(wind_agg, "wind")
+        else:
+            print(f"No wind CSV found")
+
+        # Solar
+        if hist_solar:
+            print("\n" + "=" * 60)
+            print(f"PROCESSING SOLAR DATA ({len(hist_solar)} historical files)")
+            print("=" * 60)
+            solar_meta, solar_ts = merge_csvs(hist_solar)
+            solar_agg = aggregate(solar_meta, solar_ts)
+            generate_partitioned_files(solar_agg, "solar")
+        elif os.path.exists(solar_csv):
+            print("\n" + "=" * 60)
+            print("PROCESSING SOLAR DATA (single file)")
+            print("=" * 60)
+            solar_meta, solar_ts = parse_csv(solar_csv)
+            solar_agg = aggregate(solar_meta, solar_ts)
+            generate_partitioned_files(solar_agg, "solar")
+        else:
+            print(f"No solar CSV found")
+
+    # ── Forecast mode ──────────────────────────────────────────────────
+    elif mode == "forecast":
+        fc_wind, fc_solar = discover_csv_files(sim_dir, "forecast")
+
+        if fc_wind:
+            # Use the most recent forecast file
+            latest_wind = fc_wind[-1]
+            print("\n" + "=" * 60)
+            print(f"PROCESSING FORECAST WIND: {Path(latest_wind).name}")
+            print("=" * 60)
+            wind_meta, wind_ts = parse_csv(latest_wind)
+            wind_agg = aggregate(wind_meta, wind_ts)
+            generate_forecast_files(wind_agg, "wind")
+        else:
+            print("No forecast wind CSVs found")
+
+        if fc_solar:
+            latest_solar = fc_solar[-1]
+            print("\n" + "=" * 60)
+            print(f"PROCESSING FORECAST SOLAR: {Path(latest_solar).name}")
+            print("=" * 60)
+            solar_meta, solar_ts = parse_csv(latest_solar)
+            solar_agg = aggregate(solar_meta, solar_ts)
+            generate_forecast_files(solar_agg, "solar")
+        else:
+            print("No forecast solar CSVs found")
+
+    # Generate manifest (always — covers both historical + forecast files)
     generate_manifest()
 
     print("\nDone!")

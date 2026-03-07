@@ -12,6 +12,7 @@ const App = (() => {
     startDate: "",
     endDate: "",
     mapTimeIndex: 0,
+    showForecast: false,
   };
 
   let manifest = null;
@@ -105,6 +106,21 @@ const App = (() => {
     document.getElementById("map-slider").addEventListener("input", (e) => {
       state.mapTimeIndex = parseInt(e.target.value);
       updateMapFromSlider();
+    });
+
+    // Forecast button
+    DataLoader.hasForecast().then((has) => {
+      if (has) {
+        document.getElementById("forecast-group").style.display = "block";
+      }
+    });
+    document.getElementById("forecast-btn").addEventListener("click", () => {
+      state.showForecast = !state.showForecast;
+      const btn = document.getElementById("forecast-btn");
+      btn.textContent = state.showForecast ? "Hide Forecast" : "Show NOAA Forecast";
+      btn.style.background = state.showForecast ? "var(--accent)" : "var(--bg)";
+      btn.style.color = state.showForecast ? "var(--bg)" : "var(--accent)";
+      refresh();
     });
   }
 
@@ -231,6 +247,25 @@ const App = (() => {
 
       if (state.view === "timeseries") {
         const data = await DataLoader.loadRange(state.type, state.startDate, state.endDate + "T23:59:59Z");
+        // Append forecast data if toggled on
+        if (state.showForecast) {
+          const forecast = await DataLoader.loadForecast(state.type);
+          if (forecast && data) {
+            data.timestamps.push(...forecast.timestamps);
+            data.national.mw.push(...forecast.national.mw);
+            data.national.cf.push(...forecast.national.cf);
+            for (const [s, vals] of Object.entries(forecast.states)) {
+              if (!data.states[s]) data.states[s] = { mw: [], cf: [] };
+              data.states[s].mw.push(...vals.mw);
+              data.states[s].cf.push(...vals.cf);
+            }
+            for (const [iso, vals] of Object.entries(forecast.isos)) {
+              if (!data.isos[iso]) data.isos[iso] = { mw: [], cf: [] };
+              data.isos[iso].mw.push(...vals.mw);
+              data.isos[iso].cf.push(...vals.cf);
+            }
+          }
+        }
         if (data) {
           updateStats(data, state.type);
           Charts.renderTimeSeries("chart-timeseries", data, {

@@ -170,5 +170,35 @@ const DataLoader = (() => {
     return merged;
   }
 
-  return { loadManifest, loadData, getAvailablePeriods, loadRange };
+  /**
+   * Load forecast data for a given type.
+   * @returns {Promise<object|null>} forecast data or null if unavailable
+   */
+  async function loadForecast(type) {
+    const key = `${type}_forecast`;
+    if (cache.has(key)) return cache.get(key);
+
+    const m = await loadManifest();
+    const fileEntry = m.files.find(
+      (f) => f.type === type && f.period === "forecast"
+    );
+    if (!fileEntry) return null;
+
+    const resp = await fetch(fileEntry.path);
+    if (!resp.ok) return null;
+    const data = await resp.json();
+    data.granularity = "hourly";
+    cache.set(key, data);
+    return data;
+  }
+
+  /**
+   * Check if forecast data is available.
+   */
+  async function hasForecast() {
+    const m = await loadManifest();
+    return m.files.some((f) => f.period === "forecast");
+  }
+
+  return { loadManifest, loadData, getAvailablePeriods, loadRange, loadForecast, hasForecast };
 })();

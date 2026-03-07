@@ -34,7 +34,7 @@ echo [Step 2/3] Running preprocessing... >> "%LOG_FILE%"
 echo [Step 2/3] Running preprocessing...
 
 cd /d "%PROJECT_DIR%"
-python scripts\preprocess.py >> "%LOG_FILE%" 2>&1
+python scripts\preprocess.py --mode forecast --sim-dir "%SIM_DIR%" >> "%LOG_FILE%" 2>&1
 if %errorlevel% neq 0 (
     echo [FAILED] Preprocessing failed with exit code %errorlevel% >> "%LOG_FILE%"
     echo [FAILED] Preprocessing failed. Check log: %LOG_FILE%
