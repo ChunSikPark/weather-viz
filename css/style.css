@@ -196,12 +196,26 @@ select option { background: var(--bg); color: var(--text); }
 /* ── Date Range ──────────────────────────────────────────────────────────── */
 .date-inputs {
   display: flex;
-  gap: 8px;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.date-inputs .date-row {
+  display: flex;
   align-items: center;
+  gap: 8px;
+}
+
+.date-inputs .date-label {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  width: 32px;
+  flex-shrink: 0;
 }
 
 .date-inputs input {
   flex: 1;
+  min-width: 0;
   padding: 6px 10px;
   background: var(--bg);
   color: var(--text);
