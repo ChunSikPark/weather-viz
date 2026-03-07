@@ -330,6 +330,7 @@ const App = (() => {
       }
     } catch (e) {
       console.error("Refresh failed:", e);
+      console.error(e.stack);
     }
 
     showLoading(false);
