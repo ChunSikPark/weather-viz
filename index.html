@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>US Renewable Energy Generation — Weather Simulation Visualization</title>
+  <link rel="stylesheet" href="css/style.css">
+  <script src="https://cdn.plot.ly/plotly-2.35.0.min.js" charset="utf-8"></script>
+</head>
+<body>
+
+  <!-- Loading Overlay -->
+  <div id="loading" class="loading-overlay">
+    <div class="loading-spinner"></div>
+  </div>
+
+  <!-- Header -->
+  <header class="header">
+    <h1>US Renewable Energy Generation <span>Weather Simulation Pipeline</span></h1>
+    <nav class="nav-tabs">
+      <button class="nav-tab active" data-view="timeseries">Time Series</button>
+      <button class="nav-tab" data-view="map">US Map</button>
+      <button class="nav-tab" data-view="comparison">Comparison</button>
+    </nav>
+  </header>
+
+  <!-- Main Layout -->
+  <div class="main-layout">
+
+    <!-- Sidebar Controls -->
+    <aside class="sidebar">
+
+      <!-- Energy Type Toggle -->
+      <div class="control-group">
+        <label>Energy Type</label>
+        <div class="toggle-group type-toggle">
+          <button class="toggle-btn wind active" data-type="wind">Wind</button>
+          <button class="toggle-btn solar" data-type="solar">Solar</button>
+        </div>
+      </div>
+
+      <!-- Metric Toggle -->
+      <div class="control-group">
+        <label>Metric</label>
+        <div class="toggle-group metric-toggle">
+          <button class="toggle-btn active" data-metric="mw">MW</button>
+          <button class="toggle-btn" data-metric="cf">Capacity Factor</button>
+        </div>
+      </div>
+
+      <!-- Group By Toggle -->
+      <div class="control-group">
+        <label>Group By</label>
+        <div class="toggle-group group-toggle">
+          <button class="toggle-btn active" data-group="state">State</button>
+          <button class="toggle-btn" data-group="iso">ISO</button>
+          <button class="toggle-btn" data-group="national">National</button>
+        </div>
+      </div>
+
+      <!-- State Selection -->
+      <div class="control-group" id="state-group">
+        <label>States</label>
+        <div id="state-list" class="checkbox-list"></div>
+        <div class="quick-btns">
+          <button class="quick-btn" id="state-all">Select All</button>
+          <button class="quick-btn" id="state-none">Clear All</button>
+        </div>
+      </div>
+
+      <!-- ISO Selection -->
+      <div class="control-group" id="iso-group" style="display:none;">
+        <label>ISO Regions</label>
+        <div id="iso-list" class="checkbox-list"></div>
+        <div class="quick-btns">
+          <button class="quick-btn" id="iso-all">Select All</button>
+          <button class="quick-btn" id="iso-none">Clear All</button>
+        </div>
+      </div>
+
+      <!-- Date Range -->
+      <div class="control-group">
+        <label>Date Range</label>
+        <div class="date-inputs">
+          <input type="date" id="date-start">
+          <span>to</span>
+          <input type="date" id="date-end">
+        </div>
+      </div>
+
+    </aside>
+
+    <!-- Content Area -->
+    <main class="content">
+
+      <!-- Time Series View -->
+      <div id="view-timeseries" class="view active">
+        <!-- Stats Row -->
+        <div class="stats-row">
+          <div class="stat-card">
+            <div class="stat-label">Avg Generation</div>
+            <div class="stat-value wind" id="stat-avg-mw">—</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Peak Generation</div>
+            <div class="stat-value wind" id="stat-peak-mw">—</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Avg Capacity Factor</div>
+            <div class="stat-value wind" id="stat-avg-cf">—</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Data Points</div>
+            <div class="stat-value" id="stat-datapoints">—</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Granularity</div>
+            <div class="stat-value" id="stat-granularity">—</div>
+          </div>
+        </div>
+        <div class="chart-container">
+          <div id="chart-timeseries" style="height:500px;"></div>
+        </div>
+      </div>
+
+      <!-- Map View -->
+      <div id="view-map" class="view">
+        <div class="chart-container">
+          <h3>
+            <span id="map-time-label">—</span>
+          </h3>
+          <input type="range" id="map-slider" min="0" max="0" value="0"
+            style="width:100%; accent-color: var(--accent); margin-bottom: 12px;">
+          <div id="chart-map" style="height:550px;"></div>
+        </div>
+      </div>
+
+      <!-- Comparison View -->
+      <div id="view-comparison" class="view">
+        <div class="chart-container">
+          <h3>Wind vs Solar — Overlay</h3>
+          <div id="chart-comparison" style="height:400px;"></div>
+        </div>
+        <div class="chart-container">
+          <h3>Regional Contribution — Stacked Area</h3>
+          <div id="chart-stacked" style="height:400px;"></div>
+        </div>
+      </div>
+
+    </main>
+  </div>
+
+  <!-- Scripts -->
+  <script src="js/data-loader.js"></script>
+  <script src="js/charts.js"></script>
+  <script src="js/map.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
