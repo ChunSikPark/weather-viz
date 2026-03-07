@@ -12,7 +12,7 @@ const App = (() => {
     startDate: "",
     endDate: "",
     mapTimeIndex: 0,
-    showForecast: false,
+    dataSource: "historical",
   };
 
   let manifest = null;
@@ -108,19 +108,24 @@ const App = (() => {
       updateMapFromSlider();
     });
 
-    // Forecast button
-    DataLoader.hasForecast().then((has) => {
-      if (has) {
-        document.getElementById("forecast-group").style.display = "block";
-      }
+    // Data Source toggle
+    document.querySelectorAll(".datasource-toggle .toggle-btn").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        if (btn.disabled) return;
+        document.querySelectorAll(".datasource-toggle .toggle-btn").forEach((b) => b.classList.remove("active"));
+        btn.classList.add("active");
+        state.dataSource = btn.dataset.source;
+        updateDateRangeVisibility();
+        refresh();
+      });
     });
-    document.getElementById("forecast-btn").addEventListener("click", () => {
-      state.showForecast = !state.showForecast;
-      const btn = document.getElementById("forecast-btn");
-      btn.textContent = state.showForecast ? "Hide Forecast" : "Show NOAA Forecast";
-      btn.style.background = state.showForecast ? "var(--accent)" : "var(--bg)";
-      btn.style.color = state.showForecast ? "var(--bg)" : "var(--accent)";
-      refresh();
+    // Disable forecast button if no forecast data exists
+    DataLoader.hasForecast().then((has) => {
+      if (!has) {
+        const fcBtn = document.querySelector('.datasource-toggle .toggle-btn[data-source="forecast"]');
+        fcBtn.disabled = true;
+        fcBtn.classList.add("disabled");
+      }
     });
   }
 
@@ -168,6 +173,18 @@ const App = (() => {
     }
   }
 
+  function updateDateRangeVisibility() {
+    const dateGroup = document.getElementById("date-range-group");
+    dateGroup.style.display = state.dataSource === "forecast" ? "none" : "block";
+  }
+
+  async function loadDataForView(type) {
+    if (state.dataSource === "forecast") {
+      return DataLoader.loadForecast(type);
+    }
+    return DataLoader.loadRange(type, state.startDate, state.endDate + "T23:59:59Z");
+  }
+
   // ── View Switching ──────────────────────────────────────────────────────
   function switchView(view) {
     state.view = view;
@@ -200,6 +217,10 @@ const App = (() => {
       });
     }
 
+    if (params.has("source")) {
+      state.dataSource = params.get("source");
+    }
+
     // Sync UI toggles
     document.querySelectorAll(".type-toggle .toggle-btn").forEach((b) =>
       b.classList.toggle("active", b.dataset.type === state.type)
@@ -210,9 +231,13 @@ const App = (() => {
     document.querySelectorAll(".group-toggle .toggle-btn").forEach((b) =>
       b.classList.toggle("active", b.dataset.group === state.groupBy)
     );
+    document.querySelectorAll(".datasource-toggle .toggle-btn").forEach((b) =>
+      b.classList.toggle("active", b.dataset.source === state.dataSource)
+    );
 
     switchView(state.view);
     updateRegionVisibility();
+    updateDateRangeVisibility();
   }
 
   function updateURL() {
@@ -221,8 +246,11 @@ const App = (() => {
     params.set("type", state.type);
     params.set("group", state.groupBy);
     params.set("metric", state.metric);
-    params.set("from", state.startDate);
-    params.set("to", state.endDate);
+    params.set("source", state.dataSource);
+    if (state.dataSource === "historical") {
+      params.set("from", state.startDate);
+      params.set("to", state.endDate);
+    }
     const regions = getSelectedRegions();
     if (regions.length > 0 && regions.length < 20) {
       params.set("regions", regions.join(","));
@@ -237,7 +265,7 @@ const App = (() => {
 
   // ── Refresh ─────────────────────────────────────────────────────────────
   async function refresh() {
-    if (!state.startDate || !state.endDate) return;
+    if (state.dataSource === "historical" && (!state.startDate || !state.endDate)) return;
     showLoading(true);
     updateURL();
 
@@ -246,26 +274,7 @@ const App = (() => {
       state.selectedRegions = regions;
 
       if (state.view === "timeseries") {
-        const data = await DataLoader.loadRange(state.type, state.startDate, state.endDate + "T23:59:59Z");
-        // Append forecast data if toggled on
-        if (state.showForecast) {
-          const forecast = await DataLoader.loadForecast(state.type);
-          if (forecast && data) {
-            data.timestamps.push(...forecast.timestamps);
-            data.national.mw.push(...forecast.national.mw);
-            data.national.cf.push(...forecast.national.cf);
-            for (const [s, vals] of Object.entries(forecast.states)) {
-              if (!data.states[s]) data.states[s] = { mw: [], cf: [] };
-              data.states[s].mw.push(...vals.mw);
-              data.states[s].cf.push(...vals.cf);
-            }
-            for (const [iso, vals] of Object.entries(forecast.isos)) {
-              if (!data.isos[iso]) data.isos[iso] = { mw: [], cf: [] };
-              data.isos[iso].mw.push(...vals.mw);
-              data.isos[iso].cf.push(...vals.cf);
-            }
-          }
-        }
+        const data = await loadDataForView(state.type);
         if (data) {
           updateStats(data, state.type);
           Charts.renderTimeSeries("chart-timeseries", data, {
@@ -276,7 +285,7 @@ const App = (() => {
           });
         }
       } else if (state.view === "map") {
-        const data = await DataLoader.loadRange(state.type, state.startDate, state.endDate + "T23:59:59Z");
+        const data = await loadDataForView(state.type);
         if (data && data.timestamps.length > 0) {
           currentWindData = state.type === "wind" ? data : currentWindData;
           currentSolarData = state.type === "solar" ? data : currentSolarData;
@@ -295,12 +304,10 @@ const App = (() => {
           });
 
           MapView.onStateClick("chart-map", (stateCode) => {
-            // Drill down: switch to time series filtered to this state
             const containerId = "state-list";
             document.querySelectorAll(`#${containerId} input[type="checkbox"]`).forEach((cb) => {
               cb.checked = cb.value === stateCode;
             });
-            // Switch group to state
             state.groupBy = "state";
             document.querySelectorAll(".group-toggle .toggle-btn").forEach((b) =>
               b.classList.toggle("active", b.dataset.group === "state")
@@ -310,8 +317,8 @@ const App = (() => {
           });
         }
       } else if (state.view === "comparison") {
-        const windData = await DataLoader.loadRange("wind", state.startDate, state.endDate + "T23:59:59Z");
-        const solarData = await DataLoader.loadRange("solar", state.startDate, state.endDate + "T23:59:59Z");
+        const windData = await loadDataForView("wind");
+        const solarData = await loadDataForView("solar");
 
         if (windData && solarData) {
           Charts.renderComparison("chart-comparison", windData, solarData, {
@@ -319,7 +326,6 @@ const App = (() => {
             groupBy: state.groupBy,
           });
 
-          // Stacked area for the selected type
           const stackData = state.type === "wind" ? windData : solarData;
           Charts.renderStackedArea("chart-stacked", stackData, {
             regions,

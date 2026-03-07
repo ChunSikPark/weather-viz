@@ -130,6 +130,12 @@ body {
 .toggle-btn.active.solar { background: var(--solar); color: var(--bg); }
 .toggle-btn:not(.active) { color: var(--text-muted); }
 .toggle-btn:not(.active):hover { color: var(--text); }
+.toggle-btn.disabled,
+.toggle-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+  pointer-events: none;
+}
 
 /* ── Select / Multi-select ───────────────────────────────────────────────── */
 select, .multi-select {

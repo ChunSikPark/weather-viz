@@ -58,6 +58,15 @@
         </div>
       </div>
 
+      <!-- Data Source Toggle -->
+      <div class="control-group" id="datasource-group">
+        <label>Data Source</label>
+        <div class="toggle-group datasource-toggle">
+          <button class="toggle-btn active" data-source="historical">Historical</button>
+          <button class="toggle-btn" data-source="forecast">Forecast</button>
+        </div>
+      </div>
+
       <!-- State Selection -->
       <div class="control-group" id="state-group">
         <label>States</label>
@@ -79,7 +88,7 @@
       </div>
 
       <!-- Date Range -->
-      <div class="control-group">
+      <div class="control-group" id="date-range-group">
         <label>Date Range</label>
         <div class="date-inputs">
           <div class="date-row">
@@ -91,14 +100,6 @@
             <input type="date" id="date-end">
           </div>
         </div>
-      </div>
-
-      <!-- Forecast Toggle -->
-      <div class="control-group" id="forecast-group" style="display:none;">
-        <label>Forecast</label>
-        <button class="toggle-btn" id="forecast-btn" style="width:100%;padding:8px;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);color:var(--accent);cursor:pointer;">
-          Show NOAA Forecast
-        </button>
       </div>
 
     </aside>
