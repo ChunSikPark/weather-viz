@@ -6,12 +6,12 @@ const Charts = (() => {
     paper_bgcolor: "#1a1d27",
     plot_bgcolor: "#1a1d27",
     font: { color: "#e4e6eb", size: 12 },
-    margin: { t: 40, r: 20, b: 100, l: 70 },
+    margin: { t: 40, r: 20, b: 50, l: 70 },
     legend: {
       bgcolor: "rgba(0,0,0,0)",
       font: { size: 11 },
       orientation: "h",
-      y: -0.35,
+      y: -0.15,
     },
     xaxis: {
       gridcolor: "#2a2e3d",
