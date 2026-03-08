@@ -318,6 +318,43 @@ select option { background: var(--bg); color: var(--text); }
 .stat-card .stat-value.wind { color: var(--wind); }
 .stat-card .stat-value.solar { color: var(--solar); }
 
+/* ── References Footer ───────────────────────────────────────────────────── */
+.references {
+  background: var(--bg-card);
+  border-top: 1px solid var(--border);
+  padding: 20px 24px;
+}
+
+.references h3 {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 10px;
+}
+
+.references ul {
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 20px;
+}
+
+.references li {
+  font-size: 0.8rem;
+}
+
+.references a {
+  color: var(--accent);
+  text-decoration: none;
+}
+
+.references a:hover {
+  text-decoration: underline;
+  color: var(--accent-hover);
+}
+
 /* ── Responsive ──────────────────────────────────────────────────────────── */
 @media (max-width: 900px) {
   .main-layout {

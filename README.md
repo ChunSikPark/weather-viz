@@ -149,6 +149,14 @@ Each JSON data file contains:
 | `national` | National total MW and capacity factor arrays |
 | `meta` | File metadata (type, granularity, period, generation timestamp) |
 
+## References
+
+- [Forecast Validation](https://overbye.engr.tamu.edu/wp-content/uploads/sites/146/2025/01/Website.pdf)
+- [ERA5 Calculation Validation](https://overbye.engr.tamu.edu/wp-content/uploads/sites/146/2024/04/PECI__ERA5_Calculation_Validation-3_ARCHIVE.pdf)
+- [PowerWorld Weather Simulation](https://overbye.engr.tamu.edu/wp-content/uploads/sites/146/2024/01/TPEC__PWW_ARCHIVE.pdf)
+- [Weather Correlation Analysis](https://overbye.engr.tamu.edu/wp-content/uploads/sites/146/2024/09/Weather_Correlation__NAPS_.pdf)
+- [EIA-860 Generator Data (2024)](https://www.eia.gov/electricity/data/eia860/)
+
 ## Tech Stack
 
 - **Frontend**: Plain HTML/JS/CSS, [Plotly.js](https://plotly.com/javascript/) (CDN)
