@@ -354,9 +354,14 @@ const App = (() => {
           state.mapTimeIndex = parseInt(slider.value);
 
           const ts = data.timestamps[state.mapTimeIndex];
-          const label = data.granularity === "daily (peak)"
-            ? formatDate(ts) + " (Daily Peak)"
-            : formatDate(ts);
+          let label;
+          if (data.granularity === "daily (peak)") {
+            label = formatDate(ts) + " (Daily Peak)";
+          } else if (data.granularity === "monthly") {
+            label = formatMonth(ts) + " (Monthly Peak)";
+          } else {
+            label = formatDate(ts);
+          }
           document.getElementById("map-time-label").textContent = label;
 
           MapView.renderMap("chart-map", data.states, data.timestamps, {
@@ -408,9 +413,14 @@ const App = (() => {
     const data = state.type === "wind" ? currentWindData : currentSolarData;
     if (!data) return;
     const ts = data.timestamps[state.mapTimeIndex];
-    const label = data.granularity === "daily (peak)"
-      ? formatDate(ts) + " (Daily Peak)"
-      : formatDate(ts);
+    let label;
+    if (data.granularity === "daily (peak)") {
+      label = formatDate(ts) + " (Daily Peak)";
+    } else if (data.granularity === "monthly") {
+      label = formatMonth(ts) + " (Monthly Peak)";
+    } else {
+      label = formatDate(ts);
+    }
     document.getElementById("map-time-label").textContent = label;
     MapView.renderMap("chart-map", data.states, data.timestamps, {
       timeIndex: state.mapTimeIndex,
@@ -450,6 +460,12 @@ const App = (() => {
   function formatDate(ts) {
     return new Date(ts).toLocaleDateString("en-US", {
       month: "short", day: "numeric", year: "numeric", timeZone: "UTC",
+    });
+  }
+
+  function formatMonth(ts) {
+    return new Date(ts).toLocaleDateString("en-US", {
+      month: "long", year: "numeric", timeZone: "UTC",
     });
   }
 
