@@ -8,10 +8,13 @@ const Charts = (() => {
     font: { color: "#e4e6eb", size: 12 },
     margin: { t: 40, r: 20, b: 50, l: 70 },
     legend: {
-      bgcolor: "rgba(0,0,0,0)",
+      bgcolor: "rgba(26,29,39,0.8)",
       font: { size: 11 },
       orientation: "h",
-      y: -0.15,
+      x: 0,
+      y: 1,
+      xanchor: "left",
+      yanchor: "bottom",
     },
     xaxis: {
       gridcolor: "#2a2e3d",
