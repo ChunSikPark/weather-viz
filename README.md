@@ -1,6 +1,6 @@
-# Weather Simulation Visualization Pipeline
+# US Renewable Energy Generation — Based on EIA-860 Dataset
 
-Interactive visualization of US wind and solar power generation, driven by historical and forecast weather data simulated through PowerWorld.
+Interactive visualization of US wind and solar power generation based on the EIA-860 generator dataset, driven by historical and forecast weather data simulated through PowerWorld.
 
 **Live site**: [https://chunsikpark.github.io/weather-viz/](https://chunsikpark.github.io/weather-viz/)
 
@@ -22,9 +22,10 @@ This project simulates renewable energy (wind and solar) generation across the c
 - Switch between MW generation and capacity factor
 - Group by state, ISO region, or national total
 - **Data Source toggle** — switch between Historical and Forecast data as distinct modes (date range hides in forecast mode; Forecast button is greyed out when no forecast data exists)
+- **Aggregation toggle** — choose Hourly (raw), Daily Avg, or Daily Peak when date range is under 90 days; greyed out for longer ranges where data is already pre-averaged
 - Select specific states or ISO regions to compare
 - Adjustable date range with automatic granularity selection (historical mode only)
-- Shareable URLs — all filter state (including `source=historical|forecast`) is encoded in query parameters
+- Shareable URLs — all filter state (including `source=historical|forecast`, `agg=raw|avg|peak`) is encoded in query parameters
 
 ### Running Locally
 
@@ -179,6 +180,15 @@ Replaced the hidden "Show NOAA Forecast" button with a proper **Data Source** to
 - **`deploy.bat`** — New script to push local changes to the GitHub Pages repo.
 
 **Files NOT modified:** `js/data-loader.js`, `js/charts.js`, `js/map.js` — already data-shape agnostic.
+
+### 2026-03-07 — Aggregation Toggle (Hourly / Daily Avg / Daily Peak)
+
+Added an Aggregation toggle in the sidebar for date ranges under 90 days. Users can view raw hourly data, daily averages, or daily peaks. The toggle is greyed out (with hint text) for longer date ranges where data is already pre-averaged.
+
+**What changed:**
+- **`index.html`** — Added Aggregation toggle group with Hourly/Daily Avg/Daily Peak buttons and hint text. Updated page title to "US Renewable Energy Generation — Based on EIA-860 Dataset".
+- **`js/app.js`** — Added `state.aggregation` (`raw|avg|peak`), toggle listeners, `aggregateDailyAvg()`, `aggregateForTimeSeries()` router, `updateAggregationVisibility()` (greys out instead of hiding). Applied aggregation in timeseries and comparison views. Added `agg` URL param.
+- **`css/style.css`** — Added `.control-hint` and `.control-group.disabled` styles.
 
 ### 2026-03-07 — Map Daily Peak, Stacked Area Fix, References, Legend
 
