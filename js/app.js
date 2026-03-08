@@ -185,6 +185,60 @@ const App = (() => {
     return DataLoader.loadRange(type, state.startDate, state.endDate + "T23:59:59Z");
   }
 
+  /** Aggregate hourly data into daily peaks (one entry per day). */
+  function aggregateDailyPeak(data) {
+    const dayMap = new Map();
+    data.timestamps.forEach((ts, i) => {
+      const day = ts.slice(0, 10);
+      if (!dayMap.has(day)) dayMap.set(day, []);
+      dayMap.get(day).push(i);
+    });
+
+    const result = {
+      timestamps: [],
+      states: {},
+      isos: {},
+      national: { mw: [], cf: [] },
+      granularity: "daily (peak)",
+    };
+
+    for (const [day, indices] of dayMap) {
+      result.timestamps.push(day);
+
+      let peakMW = 0, peakCF = 0;
+      for (const i of indices) {
+        if (data.national.mw[i] > peakMW) peakMW = data.national.mw[i];
+        if (data.national.cf[i] > peakCF) peakCF = data.national.cf[i];
+      }
+      result.national.mw.push(peakMW);
+      result.national.cf.push(peakCF);
+
+      for (const [s, vals] of Object.entries(data.states)) {
+        if (!result.states[s]) result.states[s] = { mw: [], cf: [] };
+        let sMW = 0, sCF = 0;
+        for (const i of indices) {
+          if (vals.mw[i] > sMW) sMW = vals.mw[i];
+          if (vals.cf[i] > sCF) sCF = vals.cf[i];
+        }
+        result.states[s].mw.push(sMW);
+        result.states[s].cf.push(sCF);
+      }
+
+      for (const [iso, vals] of Object.entries(data.isos)) {
+        if (!result.isos[iso]) result.isos[iso] = { mw: [], cf: [] };
+        let iMW = 0, iCF = 0;
+        for (const i of indices) {
+          if (vals.mw[i] > iMW) iMW = vals.mw[i];
+          if (vals.cf[i] > iCF) iCF = vals.cf[i];
+        }
+        result.isos[iso].mw.push(iMW);
+        result.isos[iso].cf.push(iCF);
+      }
+    }
+
+    return result;
+  }
+
   // ── View Switching ──────────────────────────────────────────────────────
   function switchView(view) {
     state.view = view;
@@ -285,7 +339,11 @@ const App = (() => {
           });
         }
       } else if (state.view === "map") {
-        const data = await loadDataForView(state.type);
+        let data = await loadDataForView(state.type);
+        // Aggregate to daily peak for cleaner map visualization
+        if (data && data.granularity !== "monthly") {
+          data = aggregateDailyPeak(data);
+        }
         if (data && data.timestamps.length > 0) {
           currentWindData = state.type === "wind" ? data : currentWindData;
           currentSolarData = state.type === "solar" ? data : currentSolarData;
@@ -295,7 +353,11 @@ const App = (() => {
           slider.value = Math.min(state.mapTimeIndex, data.timestamps.length - 1);
           state.mapTimeIndex = parseInt(slider.value);
 
-          document.getElementById("map-time-label").textContent = formatTimestamp(data.timestamps[state.mapTimeIndex]);
+          const ts = data.timestamps[state.mapTimeIndex];
+          const label = data.granularity === "daily (peak)"
+            ? formatDate(ts) + " (Daily Peak)"
+            : formatTimestamp(ts);
+          document.getElementById("map-time-label").textContent = label;
 
           MapView.renderMap("chart-map", data.states, data.timestamps, {
             timeIndex: state.mapTimeIndex,
@@ -345,7 +407,11 @@ const App = (() => {
   function updateMapFromSlider() {
     const data = state.type === "wind" ? currentWindData : currentSolarData;
     if (!data) return;
-    document.getElementById("map-time-label").textContent = formatTimestamp(data.timestamps[state.mapTimeIndex]);
+    const ts = data.timestamps[state.mapTimeIndex];
+    const label = data.granularity === "daily (peak)"
+      ? formatDate(ts) + " (Daily Peak)"
+      : formatTimestamp(ts);
+    document.getElementById("map-time-label").textContent = label;
     MapView.renderMap("chart-map", data.states, data.timestamps, {
       timeIndex: state.mapTimeIndex,
       metric: state.metric,
@@ -379,6 +445,12 @@ const App = (() => {
     if (val >= 1e6) return (val / 1e6).toFixed(2) + " TW";
     if (val >= 1e3) return (val / 1e3).toFixed(1) + " GW";
     return val.toFixed(1) + " MW";
+  }
+
+  function formatDate(ts) {
+    return new Date(ts).toLocaleDateString("en-US", {
+      month: "short", day: "numeric", year: "numeric", timeZone: "UTC",
+    });
   }
 
   function formatTimestamp(ts) {
