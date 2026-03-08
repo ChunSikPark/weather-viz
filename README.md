@@ -13,7 +13,7 @@ This project simulates renewable energy (wind and solar) generation across the c
 ### Views
 
 - **Time Series** — Interactive line charts by state, ISO region, or national total. Zoom, pan, and range slider. Auto-selects hourly/daily/monthly granularity based on date range.
-- **US Map** — Choropleth map colored by generation (MW) or capacity factor. Drag the time slider to animate. Click a state to drill into its time series.
+- **US Map** — Choropleth map colored by generation (MW) or capacity factor. Shows **daily peak** values (max MW/CF per day) for both wind and solar. Drag the time slider to step through days. Click a state to drill into its time series.
 - **Comparison** — Wind vs solar overlay and stacked area charts showing regional contribution.
 
 ### Controls
@@ -151,10 +151,10 @@ Each JSON data file contains:
 
 ## References
 
-- [Forecast Validation](https://overbye.engr.tamu.edu/wp-content/uploads/sites/146/2025/01/Website.pdf)
-- [ERA5 Calculation Validation](https://overbye.engr.tamu.edu/wp-content/uploads/sites/146/2024/04/PECI__ERA5_Calculation_Validation-3_ARCHIVE.pdf)
-- [PowerWorld Weather Simulation](https://overbye.engr.tamu.edu/wp-content/uploads/sites/146/2024/01/TPEC__PWW_ARCHIVE.pdf)
-- [Weather Correlation Analysis](https://overbye.engr.tamu.edu/wp-content/uploads/sites/146/2024/09/Weather_Correlation__NAPS_.pdf)
+- [Validation of Wind and PV Power Generation Using Historical and Forecast Weather Data](https://overbye.engr.tamu.edu/wp-content/uploads/sites/146/2025/01/Website.pdf)
+- [Calculation and Validation of Weather-Informed Renewable Generation in the US based on ERA5 Hourly Weather Measurements](https://overbye.engr.tamu.edu/wp-content/uploads/sites/146/2024/04/PECI__ERA5_Calculation_Validation-3_ARCHIVE.pdf)
+- [Detailed Hourly Weather Measurements for Power System Applications](https://overbye.engr.tamu.edu/wp-content/uploads/sites/146/2024/01/TPEC__PWW_ARCHIVE.pdf)
+- [Large-Scale Weather Correlations for a Possible Interconnection of North American Power Grids](https://overbye.engr.tamu.edu/wp-content/uploads/sites/146/2024/09/Weather_Correlation__NAPS_.pdf)
 - [EIA-860 Generator Data (2024)](https://www.eia.gov/electricity/data/eia860/)
 
 ## Tech Stack
@@ -179,3 +179,12 @@ Replaced the hidden "Show NOAA Forecast" button with a proper **Data Source** to
 - **`deploy.bat`** — New script to push local changes to the GitHub Pages repo.
 
 **Files NOT modified:** `js/data-loader.js`, `js/charts.js`, `js/map.js` — already data-shape agnostic.
+
+### 2026-03-07 — Map Daily Peak, Stacked Area Fix, References, Legend
+
+**What changed:**
+
+- **`js/app.js`** — Map view now aggregates hourly/daily data into daily peaks via `aggregateDailyPeak()` for both wind and solar. Map labels show date + "(Daily Peak)" or "(Monthly Peak)". Added `formatDate()` and `formatMonth()` helpers.
+- **`js/charts.js`** — Fixed stacked area chart (Regional Contribution) not rendering: changed `type: "scattergl"` to `type: "scatter"` since WebGL doesn't support `stackgroup`. Added thin line borders between stacked regions. Moved legend inside chart area (top-left with semi-transparent background) to prevent clipping.
+- **`index.html`** — Added references footer with links to published papers and EIA-860 data. Increased time series chart height to 600px.
+- **`css/style.css`** — Added `.references` footer styling.

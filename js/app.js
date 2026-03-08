@@ -13,6 +13,7 @@ const App = (() => {
     endDate: "",
     mapTimeIndex: 0,
     dataSource: "historical",
+    aggregation: "raw",
   };
 
   let manifest = null;
@@ -119,6 +120,16 @@ const App = (() => {
         refresh();
       });
     });
+    // Aggregation toggle
+    document.querySelectorAll(".aggregation-toggle .toggle-btn").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        document.querySelectorAll(".aggregation-toggle .toggle-btn").forEach((b) => b.classList.remove("active"));
+        btn.classList.add("active");
+        state.aggregation = btn.dataset.agg;
+        refresh();
+      });
+    });
+
     // Disable forecast button if no forecast data exists
     DataLoader.hasForecast().then((has) => {
       if (!has) {
@@ -183,6 +194,74 @@ const App = (() => {
       return DataLoader.loadForecast(type);
     }
     return DataLoader.loadRange(type, state.startDate, state.endDate + "T23:59:59Z");
+  }
+
+  /** Route aggregation based on state.aggregation (only for hourly data). */
+  function aggregateForTimeSeries(data) {
+    if (!data || data.granularity !== "hourly") return data;
+    if (state.aggregation === "avg") return aggregateDailyAvg(data);
+    if (state.aggregation === "peak") return aggregateDailyPeak(data);
+    return data; // "raw" → unchanged
+  }
+
+  /** Show/hide aggregation toggle based on data granularity. */
+  function updateAggregationVisibility() {
+    // visible only when hourly data would be loaded (historical ≤90 days)
+    const aggGroup = document.getElementById("aggregation-group");
+    if (state.dataSource === "forecast") {
+      aggGroup.style.display = "none";
+      return;
+    }
+    const start = new Date(state.startDate);
+    const end = new Date(state.endDate);
+    const days = (end - start) / (1000 * 60 * 60 * 24);
+    aggGroup.style.display = days <= 90 ? "block" : "none";
+  }
+
+  /** Aggregate hourly data into daily averages (one entry per day). */
+  function aggregateDailyAvg(data) {
+    const dayMap = new Map();
+    data.timestamps.forEach((ts, i) => {
+      const day = ts.slice(0, 10);
+      if (!dayMap.has(day)) dayMap.set(day, []);
+      dayMap.get(day).push(i);
+    });
+
+    const result = {
+      timestamps: [],
+      states: {},
+      isos: {},
+      national: { mw: [], cf: [] },
+      granularity: "daily (avg)",
+    };
+
+    for (const [day, indices] of dayMap) {
+      result.timestamps.push(day);
+      const n = indices.length;
+
+      let sumMW = 0, sumCF = 0;
+      for (const i of indices) { sumMW += data.national.mw[i]; sumCF += data.national.cf[i]; }
+      result.national.mw.push(sumMW / n);
+      result.national.cf.push(sumCF / n);
+
+      for (const [s, vals] of Object.entries(data.states)) {
+        if (!result.states[s]) result.states[s] = { mw: [], cf: [] };
+        let sMW = 0, sCF = 0;
+        for (const i of indices) { sMW += vals.mw[i]; sCF += vals.cf[i]; }
+        result.states[s].mw.push(sMW / n);
+        result.states[s].cf.push(sCF / n);
+      }
+
+      for (const [iso, vals] of Object.entries(data.isos)) {
+        if (!result.isos[iso]) result.isos[iso] = { mw: [], cf: [] };
+        let iMW = 0, iCF = 0;
+        for (const i of indices) { iMW += vals.mw[i]; iCF += vals.cf[i]; }
+        result.isos[iso].mw.push(iMW / n);
+        result.isos[iso].cf.push(iCF / n);
+      }
+    }
+
+    return result;
   }
 
   /** Aggregate hourly data into daily peaks (one entry per day). */
@@ -274,6 +353,9 @@ const App = (() => {
     if (params.has("source")) {
       state.dataSource = params.get("source");
     }
+    if (params.has("agg")) {
+      state.aggregation = params.get("agg");
+    }
 
     // Sync UI toggles
     document.querySelectorAll(".type-toggle .toggle-btn").forEach((b) =>
@@ -288,6 +370,9 @@ const App = (() => {
     document.querySelectorAll(".datasource-toggle .toggle-btn").forEach((b) =>
       b.classList.toggle("active", b.dataset.source === state.dataSource)
     );
+    document.querySelectorAll(".aggregation-toggle .toggle-btn").forEach((b) =>
+      b.classList.toggle("active", b.dataset.agg === state.aggregation)
+    );
 
     switchView(state.view);
     updateRegionVisibility();
@@ -301,6 +386,7 @@ const App = (() => {
     params.set("group", state.groupBy);
     params.set("metric", state.metric);
     params.set("source", state.dataSource);
+    params.set("agg", state.aggregation);
     if (state.dataSource === "historical") {
       params.set("from", state.startDate);
       params.set("to", state.endDate);
@@ -327,10 +413,13 @@ const App = (() => {
       const regions = getSelectedRegions();
       state.selectedRegions = regions;
 
+      updateAggregationVisibility();
+
       if (state.view === "timeseries") {
-        const data = await loadDataForView(state.type);
+        let data = await loadDataForView(state.type);
+        data = aggregateForTimeSeries(data);
         if (data) {
-          updateStats(data, state.type);
+          updateStats(data, state.type, regions, state.groupBy);
           Charts.renderTimeSeries("chart-timeseries", data, {
             regions,
             groupBy: state.groupBy,
@@ -384,8 +473,10 @@ const App = (() => {
           });
         }
       } else if (state.view === "comparison") {
-        const windData = await loadDataForView("wind");
-        const solarData = await loadDataForView("solar");
+        let windData = await loadDataForView("wind");
+        let solarData = await loadDataForView("solar");
+        windData = aggregateForTimeSeries(windData);
+        solarData = aggregateForTimeSeries(solarData);
 
         if (windData && solarData) {
           Charts.renderComparison("chart-comparison", windData, solarData, {
@@ -430,9 +521,36 @@ const App = (() => {
   }
 
   // ── Stats ───────────────────────────────────────────────────────────────
-  function updateStats(data, type) {
-    const mw = data.national.mw;
-    const cf = data.national.cf;
+  function updateStats(data, type, regions, groupBy) {
+    let mw, cf;
+
+    if (groupBy === "national" || regions.length === 0) {
+      mw = data.national.mw;
+      cf = data.national.cf;
+    } else {
+      // Sum MW and average CF across selected regions
+      const source = groupBy === "iso" ? data.isos : data.states;
+      const matching = regions.filter((r) => source[r]);
+      if (matching.length === 0) {
+        mw = data.national.mw;
+        cf = data.national.cf;
+      } else {
+        const len = source[matching[0]].mw.length;
+        mw = new Array(len).fill(0);
+        cf = new Array(len).fill(0);
+        for (const r of matching) {
+          for (let i = 0; i < len; i++) {
+            mw[i] += source[r].mw[i] || 0;
+            cf[i] += source[r].cf[i] || 0;
+          }
+        }
+        // Average the capacity factors across regions
+        for (let i = 0; i < len; i++) {
+          cf[i] /= matching.length;
+        }
+      }
+    }
+
     if (!mw.length) return;
 
     const avg = mw.reduce((a, b) => a + b, 0) / mw.length;
@@ -447,7 +565,14 @@ const App = (() => {
     document.getElementById("stat-avg-cf").className = "stat-value " + colorClass;
     document.getElementById("stat-avg-cf").textContent = (avgCF * 100).toFixed(1) + "%";
     document.getElementById("stat-datapoints").textContent = mw.length.toLocaleString();
-    document.getElementById("stat-granularity").textContent = data.granularity || "—";
+    const gran = data.granularity || "—";
+    const granLabels = {
+      "daily": "Daily (Avg)",
+      "monthly": "Monthly (Avg)",
+      "daily (avg)": "Daily (Avg)",
+      "daily (peak)": "Daily (Peak)",
+    };
+    document.getElementById("stat-granularity").textContent = granLabels[gran] || gran;
   }
 
   // ── Helpers ─────────────────────────────────────────────────────────────
