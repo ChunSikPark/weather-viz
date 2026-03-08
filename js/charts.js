@@ -109,11 +109,11 @@ const Charts = (() => {
       traces.push({
         x: data.timestamps,
         y: source[region].mw,
-        type: "scattergl",
+        type: "scatter",
         mode: "lines",
         name: region,
         stackgroup: "one",
-        line: { width: 0 },
+        line: { width: 0.5, color: PALETTE[i % PALETTE.length] },
         fillcolor: PALETTE[i % PALETTE.length] + "99",
         hovertemplate: `%{y:,.1f} MW<extra>${region}</extra>`,
       });

@@ -21,9 +21,10 @@ This project simulates renewable energy (wind and solar) generation across the c
 - Toggle between wind and solar energy
 - Switch between MW generation and capacity factor
 - Group by state, ISO region, or national total
+- **Data Source toggle** — switch between Historical and Forecast data as distinct modes (date range hides in forecast mode; Forecast button is greyed out when no forecast data exists)
 - Select specific states or ISO regions to compare
-- Adjustable date range with automatic granularity selection
-- Shareable URLs — all filter state is encoded in query parameters
+- Adjustable date range with automatic granularity selection (historical mode only)
+- Shareable URLs — all filter state (including `source=historical|forecast`) is encoded in query parameters
 
 ### Running Locally
 
@@ -130,6 +131,7 @@ Pipeline logs are written to `logs/pipeline_YYYYMMDD_HHMMSS.log`.
 ├── scripts/
 │   ├── preprocess.py            # CSV to aggregated JSON pipeline
 │   └── requirements.txt         # Python dependencies
+├── deploy.bat                   # Push local changes to GitHub Pages
 ├── run_pipeline.bat             # Daily automation script
 ├── .github/workflows/deploy.yml # GitHub Pages auto-deploy
 └── specs/                       # Project specifications
@@ -154,3 +156,18 @@ Each JSON data file contains:
 - **Simulation**: [PowerWorld Simulator](https://www.powerworld.com/) with ESA
 - **Hosting**: GitHub Pages (static, auto-deployed via GitHub Actions)
 - **Weather data**: [NOAA](https://www.noaa.gov/) forecasts (up to 16 days ahead)
+
+## Changelog
+
+### 2026-03-07 — Data Source Sidebar Toggle
+
+Replaced the hidden "Show NOAA Forecast" button with a proper **Data Source** toggle in the sidebar that switches between Historical and Forecast as distinct data modes.
+
+**What changed:**
+
+- **`index.html`** — Added a Data Source toggle group (Historical / Forecast) between Group By and State Selection. Added `id="date-range-group"` to the date range section so it can be hidden in forecast mode. Removed the old hidden `forecast-group` div.
+- **`js/app.js`** — State field `showForecast` replaced with `dataSource: "historical"`. Old forecast-append logic (which merged forecast onto historical data) replaced with `loadDataForView()` helper that returns either `DataLoader.loadForecast()` or `DataLoader.loadRange()`. All three views (Time Series, Map, Comparison) now work with both data sources. Date range is hidden when forecast is selected. URL params include `source=historical|forecast` and only write `from`/`to` in historical mode. Forecast button is auto-disabled if no forecast files exist in the manifest.
+- **`css/style.css`** — Added `.toggle-btn.disabled` / `.toggle-btn:disabled` styles (greyed out, no pointer events).
+- **`deploy.bat`** — New script to push local changes to the GitHub Pages repo.
+
+**Files NOT modified:** `js/data-loader.js`, `js/charts.js`, `js/map.js` — already data-shape agnostic.
