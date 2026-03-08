@@ -356,7 +356,7 @@ const App = (() => {
           const ts = data.timestamps[state.mapTimeIndex];
           const label = data.granularity === "daily (peak)"
             ? formatDate(ts) + " (Daily Peak)"
-            : formatTimestamp(ts);
+            : formatDate(ts);
           document.getElementById("map-time-label").textContent = label;
 
           MapView.renderMap("chart-map", data.states, data.timestamps, {
@@ -410,7 +410,7 @@ const App = (() => {
     const ts = data.timestamps[state.mapTimeIndex];
     const label = data.granularity === "daily (peak)"
       ? formatDate(ts) + " (Daily Peak)"
-      : formatTimestamp(ts);
+      : formatDate(ts);
     document.getElementById("map-time-label").textContent = label;
     MapView.renderMap("chart-map", data.states, data.timestamps, {
       timeIndex: state.mapTimeIndex,
