@@ -204,18 +204,22 @@ const App = (() => {
     return data; // "raw" → unchanged
   }
 
-  /** Show/hide aggregation toggle based on data granularity. */
+  /** Enable/disable aggregation toggle based on data granularity. */
   function updateAggregationVisibility() {
-    // visible only when hourly data would be loaded (historical ≤90 days)
     const aggGroup = document.getElementById("aggregation-group");
+    let enabled = true;
     if (state.dataSource === "forecast") {
-      aggGroup.style.display = "none";
-      return;
+      enabled = false;
+    } else {
+      const start = new Date(state.startDate);
+      const end = new Date(state.endDate);
+      const days = (end - start) / (1000 * 60 * 60 * 24);
+      enabled = days <= 90;
     }
-    const start = new Date(state.startDate);
-    const end = new Date(state.endDate);
-    const days = (end - start) / (1000 * 60 * 60 * 24);
-    aggGroup.style.display = days <= 90 ? "block" : "none";
+    aggGroup.classList.toggle("disabled", !enabled);
+    document.querySelectorAll(".aggregation-toggle .toggle-btn").forEach((btn) => {
+      btn.disabled = !enabled;
+    });
   }
 
   /** Aggregate hourly data into daily averages (one entry per day). */

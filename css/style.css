@@ -137,6 +137,21 @@ body {
   pointer-events: none;
 }
 
+.control-hint {
+  display: block;
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  margin-top: 6px;
+  line-height: 1.4;
+  font-weight: 400;
+  text-transform: none;
+}
+
+.control-group.disabled {
+  opacity: 0.4;
+  pointer-events: none;
+}
+
 /* ── Select / Multi-select ───────────────────────────────────────────────── */
 select, .multi-select {
   width: 100%;
