@@ -11,6 +11,7 @@
   --accent-hover: #6ba1f8;
   --wind: #4fc3f7;
   --solar: #ffd54f;
+  --cyan: #00bcd4;
   --border: #2a2e3d;
   --radius: 8px;
   --shadow: 0 2px 8px rgba(0,0,0,0.3);
@@ -58,16 +59,22 @@ body {
   padding: 3px;
 }
 
+.sidebar-nav {
+  width: 100%;
+}
+
 .nav-tab {
-  padding: 8px 16px;
+  flex: 1;
+  padding: 8px 12px;
   border: none;
   background: none;
   color: var(--text-muted);
   cursor: pointer;
   border-radius: 6px;
-  font-size: 0.875rem;
+  font-size: 0.8rem;
   font-weight: 500;
   transition: all 0.2s;
+  text-align: center;
 }
 
 .nav-tab:hover { color: var(--text); background: var(--bg-hover); }
@@ -87,6 +94,32 @@ body {
   border-right: 1px solid var(--border);
   padding: 20px;
   overflow-y: auto;
+}
+
+/* ── Dashboard Description ───────────────────────────────────────────────── */
+.dashboard-desc {
+  margin-bottom: 20px;
+  padding: 12px;
+  background: var(--bg);
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+}
+
+.dashboard-desc p {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+
+.control-sublabel {
+  display: block;
+  font-size: 0.68rem;
+  color: var(--text-muted);
+  margin-bottom: 6px;
+  font-weight: 400;
+  text-transform: none;
+  letter-spacing: normal;
+  opacity: 0.7;
 }
 
 .control-group {
@@ -126,6 +159,7 @@ body {
 
 .toggle-btn.wind { color: var(--wind); }
 .toggle-btn.solar { color: var(--solar); }
+.toggle-btn.active { background: var(--cyan); color: var(--bg); }
 .toggle-btn.active.wind { background: var(--wind); color: var(--bg); }
 .toggle-btn.active.solar { background: var(--solar); color: var(--bg); }
 .toggle-btn:not(.active) { color: var(--text-muted); }
@@ -368,6 +402,68 @@ select option { background: var(--bg); color: var(--text); }
 .references a:hover {
   text-decoration: underline;
   color: var(--accent-hover);
+}
+
+/* ── Map Info Bar ───────────────────────────────────────────────────────── */
+.map-info-bar {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 10px 16px;
+  margin-bottom: 12px;
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+
+.map-info-bar .active-gran {
+  color: var(--cyan);
+  font-weight: 600;
+}
+
+/* ── Forecast Date Bar ──────────────────────────────────────────────────── */
+.forecast-date-bar {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px 20px;
+  margin-bottom: 16px;
+  box-shadow: var(--shadow);
+}
+
+.forecast-date-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.forecast-date-title {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+}
+
+.forecast-date-value {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--cyan);
+}
+
+.forecast-slider {
+  width: 100%;
+  accent-color: var(--cyan);
+  cursor: pointer;
+}
+
+.forecast-date-range {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 4px;
+  font-size: 0.7rem;
+  color: var(--text-muted);
 }
 
 /* ── Responsive ──────────────────────────────────────────────────────────── */

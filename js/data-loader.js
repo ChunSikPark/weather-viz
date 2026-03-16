@@ -58,15 +58,21 @@ const DataLoader = (() => {
   async function loadRange(type, startDate, endDate) {
     const m = await loadManifest();
 
-    // Determine granularity based on range span
+    // Determine granularity based on range span (use date-only for threshold)
     const start = new Date(startDate);
     const end = new Date(endDate);
-    const diffDays = (end - start) / (1000 * 60 * 60 * 24);
+    const startDateOnly = new Date(startDate.slice(0, 10));
+    const endDateOnly = new Date(endDate.slice(0, 10));
+    const diffDays = (endDateOnly - startDateOnly) / (1000 * 60 * 60 * 24);
+
+    // Check if range is within 3 calendar months
+    const threeMonthsLater = new Date(startDateOnly);
+    threeMonthsLater.setMonth(threeMonthsLater.getMonth() + 3);
 
     let granularity;
-    if (diffDays <= 90) {
+    if (endDateOnly <= threeMonthsLater) {
       granularity = "hourly";
-    } else if (diffDays <= 730) {
+    } else if (diffDays <= 365 * 2) {
       granularity = "daily";
     } else {
       granularity = "monthly";

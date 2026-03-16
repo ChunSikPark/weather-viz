@@ -17,11 +17,6 @@
   <!-- Header -->
   <header class="header">
     <h1>US Renewable Energy Generation <span>Based on EIA-860 Dataset</span></h1>
-    <nav class="nav-tabs">
-      <button class="nav-tab active" data-view="timeseries">Time Series</button>
-      <button class="nav-tab" data-view="map">US Map</button>
-      <button class="nav-tab" data-view="comparison">Comparison</button>
-    </nav>
   </header>
 
   <!-- Main Layout -->
@@ -30,9 +25,25 @@
     <!-- Sidebar Controls -->
     <aside class="sidebar">
 
+      <!-- Dashboard Description -->
+      <div class="dashboard-desc">
+        <p>Explore US wind and solar power generation from EIA-860 generators, driven by historical weather data (1940–2025) and NOAA 16-day forecasts simulated through PowerWorld.</p>
+      </div>
+
+      <!-- View Navigation -->
+      <div class="control-group">
+        <label>View</label>
+        <nav class="nav-tabs sidebar-nav">
+          <button class="nav-tab active" data-view="timeseries">Time Series</button>
+          <button class="nav-tab" data-view="map">US Map</button>
+          <button class="nav-tab" data-view="comparison">Comparison</button>
+        </nav>
+      </div>
+
       <!-- Energy Type Toggle -->
       <div class="control-group">
         <label>Energy Type</label>
+        <small class="control-sublabel">Changes all charts and map data</small>
         <div class="toggle-group type-toggle">
           <button class="toggle-btn wind active" data-type="wind">Wind</button>
           <button class="toggle-btn solar" data-type="solar">Solar</button>
@@ -40,8 +51,9 @@
       </div>
 
       <!-- Metric Toggle -->
-      <div class="control-group">
+      <div class="control-group" id="metric-group">
         <label>Metric</label>
+        <small class="control-sublabel">Switches Y-axis between MW output and capacity factor</small>
         <div class="toggle-group metric-toggle">
           <button class="toggle-btn active" data-metric="mw">MW</button>
           <button class="toggle-btn" data-metric="cf">Capacity Factor</button>
@@ -51,6 +63,7 @@
       <!-- Group By Toggle -->
       <div class="control-group">
         <label>Group By</label>
+        <small class="control-sublabel">Groups chart traces by state, ISO region, or national total</small>
         <div class="toggle-group group-toggle">
           <button class="toggle-btn active" data-group="state">State</button>
           <button class="toggle-btn" data-group="iso">ISO</button>
@@ -61,6 +74,7 @@
       <!-- Data Source Toggle -->
       <div class="control-group" id="datasource-group">
         <label>Data Source</label>
+        <small class="control-sublabel">Switch between historical records and NOAA forecast</small>
         <div class="toggle-group datasource-toggle">
           <button class="toggle-btn active" data-source="historical">Historical</button>
           <button class="toggle-btn" data-source="forecast">Forecast</button>
@@ -70,12 +84,13 @@
       <!-- Aggregation Toggle -->
       <div class="control-group" id="aggregation-group">
         <label>Aggregation</label>
+        <small class="control-sublabel">Controls time resolution of displayed data</small>
         <div class="toggle-group aggregation-toggle">
           <button class="toggle-btn active" data-agg="raw">Hourly</button>
           <button class="toggle-btn" data-agg="avg">Daily Avg</button>
           <button class="toggle-btn" data-agg="peak">Daily Peak</button>
         </div>
-        <small class="control-hint">Only available for date ranges under 90 days</small>
+        <small class="control-hint">Only available for date ranges under 3 months</small>
       </div>
 
       <!-- State Selection -->
@@ -118,6 +133,19 @@
     <!-- Content Area -->
     <main class="content">
 
+      <!-- Forecast Date Selector (visible in forecast mode) -->
+      <div id="forecast-date-bar" class="forecast-date-bar" style="display:none;">
+        <div class="forecast-date-header">
+          <span class="forecast-date-title">Forecast Date</span>
+          <span id="forecast-date-label" class="forecast-date-value">—</span>
+        </div>
+        <input type="range" id="forecast-date-slider" min="0" max="0" value="0" class="forecast-slider">
+        <div class="forecast-date-range">
+          <span id="forecast-date-start">—</span>
+          <span id="forecast-date-end">—</span>
+        </div>
+      </div>
+
       <!-- Time Series View -->
       <div id="view-timeseries" class="view active">
         <!-- Stats Row -->
@@ -150,6 +178,9 @@
 
       <!-- Map View -->
       <div id="view-map" class="view">
+        <div class="map-info-bar">
+          <span id="map-granularity-info">Hourly: ≤90 days &nbsp;|&nbsp; Daily: ≤2 years &nbsp;|&nbsp; Monthly: >2 years</span>
+        </div>
         <div class="chart-container">
           <h3>
             <span id="map-time-label">—</span>

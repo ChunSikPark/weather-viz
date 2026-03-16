@@ -14,11 +14,13 @@ const App = (() => {
     mapTimeIndex: 0,
     dataSource: "historical",
     aggregation: "raw",
+    forecastDateIndex: 0,
   };
 
   let manifest = null;
   let currentWindData = null;
   let currentSolarData = null;
+  let forecastDates = []; // unique dates extracted from forecast data
 
   // ── Init ────────────────────────────────────────────────────────────────
   async function init() {
@@ -109,6 +111,13 @@ const App = (() => {
       updateMapFromSlider();
     });
 
+    // Forecast date slider
+    document.getElementById("forecast-date-slider").addEventListener("input", (e) => {
+      state.forecastDateIndex = parseInt(e.target.value);
+      updateForecastDateLabel();
+      refresh();
+    });
+
     // Data Source toggle
     document.querySelectorAll(".datasource-toggle .toggle-btn").forEach((btn) => {
       btn.addEventListener("click", () => {
@@ -187,6 +196,10 @@ const App = (() => {
   function updateDateRangeVisibility() {
     const dateGroup = document.getElementById("date-range-group");
     dateGroup.style.display = state.dataSource === "forecast" ? "none" : "block";
+    // Hide forecast date bar when switching to historical
+    if (state.dataSource === "historical") {
+      document.getElementById("forecast-date-bar").style.display = "none";
+    }
   }
 
   async function loadDataForView(type) {
@@ -209,17 +222,137 @@ const App = (() => {
     const aggGroup = document.getElementById("aggregation-group");
     let enabled = true;
     if (state.dataSource === "forecast") {
+      // Hide aggregation entirely in forecast mode (hourly per day via date slider)
       enabled = false;
     } else {
       const start = new Date(state.startDate);
       const end = new Date(state.endDate);
-      const days = (end - start) / (1000 * 60 * 60 * 24);
-      enabled = days <= 90;
+      const threeMonths = new Date(start);
+      threeMonths.setMonth(threeMonths.getMonth() + 3);
+      enabled = end <= threeMonths;
     }
     aggGroup.classList.toggle("disabled", !enabled);
+    aggGroup.style.display = state.dataSource === "forecast" ? "none" : "block";
     document.querySelectorAll(".aggregation-toggle .toggle-btn").forEach((btn) => {
       btn.disabled = !enabled;
     });
+  }
+
+  /** Show/hide forecast date bar and metric group based on current state. */
+  function updateForecastDateBar(data) {
+    const bar = document.getElementById("forecast-date-bar");
+    if (state.dataSource !== "forecast" || !data) {
+      bar.style.display = "none";
+      forecastDates = [];
+      return;
+    }
+    // Extract unique dates from timestamps, skip partial days (<12 hours)
+    const dateCounts = new Map();
+    data.timestamps.forEach((ts) => {
+      const day = ts.slice(0, 10);
+      dateCounts.set(day, (dateCounts.get(day) || 0) + 1);
+    });
+    forecastDates = Array.from(dateCounts.keys()).filter((d) => dateCounts.get(d) >= 12).sort();
+
+    if (forecastDates.length === 0) {
+      bar.style.display = "none";
+      return;
+    }
+
+    bar.style.display = "block";
+    const slider = document.getElementById("forecast-date-slider");
+    slider.max = forecastDates.length - 1;
+    state.forecastDateIndex = Math.min(state.forecastDateIndex, forecastDates.length - 1);
+    slider.value = state.forecastDateIndex;
+
+    document.getElementById("forecast-date-start").textContent = formatDate(forecastDates[0]);
+    document.getElementById("forecast-date-end").textContent = formatDate(forecastDates[forecastDates.length - 1]);
+    updateForecastDateLabel();
+  }
+
+  function updateForecastDateLabel() {
+    if (forecastDates.length === 0) return;
+    const date = forecastDates[state.forecastDateIndex];
+    document.getElementById("forecast-date-label").textContent = formatDate(date);
+  }
+
+  /** Filter data to only include timestamps for a specific date. */
+  function filterDataByDate(data, dateStr) {
+    const indices = [];
+    data.timestamps.forEach((ts, i) => {
+      if (ts.startsWith(dateStr)) indices.push(i);
+    });
+
+    const result = {
+      timestamps: indices.map((i) => data.timestamps[i]),
+      states: {},
+      isos: {},
+      national: { mw: indices.map((i) => data.national.mw[i]), cf: indices.map((i) => data.national.cf[i]) },
+      granularity: "hourly",
+    };
+
+    for (const [s, vals] of Object.entries(data.states)) {
+      result.states[s] = { mw: indices.map((i) => vals.mw[i]), cf: indices.map((i) => vals.cf[i]) };
+    }
+    for (const [iso, vals] of Object.entries(data.isos)) {
+      result.isos[iso] = { mw: indices.map((i) => vals.mw[i]), cf: indices.map((i) => vals.cf[i]) };
+    }
+
+    return result;
+  }
+
+  /** Update the map info bar to show granularity tiers and highlight the active one. */
+  function updateMapInfoBar(data) {
+    const info = document.getElementById("map-granularity-info");
+    if (!info) return;
+    if (state.dataSource === "forecast") {
+      info.innerHTML = "Showing <span class=\"active-gran\">hourly</span> forecast data (16 days)";
+      return;
+    }
+    const gran = data ? (data.granularity || "").replace(" (peak)", "") : "";
+    const tiers = [
+      { key: "hourly", label: "Hourly", range: "≤3 months" },
+      { key: "daily", label: "Daily", range: "<2 years" },
+      { key: "monthly", label: "Monthly", range: "≥2 years" },
+    ];
+    info.innerHTML = tiers.map((t) => {
+      const cls = gran === t.key ? ' class="active-gran"' : '';
+      return `<span${cls}>${t.label}: ${t.range}</span>`;
+    }).join(" &nbsp;|&nbsp; ");
+  }
+
+  /** Remove timestamps where all states have 0 MW (e.g., solar nighttime). */
+  function filterZeroTimestamps(data) {
+    const indices = [];
+    for (let i = 0; i < data.timestamps.length; i++) {
+      let allZero = true;
+      for (const vals of Object.values(data.states)) {
+        if (vals.mw[i] > 0) { allZero = false; break; }
+      }
+      if (!allZero) indices.push(i);
+    }
+    if (indices.length === data.timestamps.length) return data; // nothing to filter
+
+    const result = {
+      timestamps: indices.map((i) => data.timestamps[i]),
+      states: {},
+      isos: {},
+      national: { mw: indices.map((i) => data.national.mw[i]), cf: indices.map((i) => data.national.cf[i]) },
+      granularity: data.granularity,
+    };
+    for (const [s, vals] of Object.entries(data.states)) {
+      result.states[s] = { mw: indices.map((i) => vals.mw[i]), cf: indices.map((i) => vals.cf[i]) };
+    }
+    for (const [iso, vals] of Object.entries(data.isos)) {
+      result.isos[iso] = { mw: indices.map((i) => vals.mw[i]), cf: indices.map((i) => vals.cf[i]) };
+    }
+    return result;
+  }
+
+  /** Hide metric group in comparison view, show otherwise. */
+  function updateMetricVisibility() {
+    const metricGroup = document.getElementById("metric-group");
+    metricGroup.style.display = state.view === "comparison" ? "none" : "block";
   }
 
   /** Aggregate hourly data into daily averages (one entry per day). */
@@ -327,6 +460,7 @@ const App = (() => {
     state.view = view;
     document.querySelectorAll(".nav-tab").forEach((t) => t.classList.toggle("active", t.dataset.view === view));
     document.querySelectorAll(".view").forEach((v) => v.classList.toggle("active", v.id === `view-${view}`));
+    updateMetricVisibility();
     updateURL();
     refresh();
   }
@@ -421,6 +555,11 @@ const App = (() => {
 
       if (state.view === "timeseries") {
         let data = await loadDataForView(state.type);
+        updateForecastDateBar(data);
+        // In forecast mode, filter to selected date's hourly data
+        if (state.dataSource === "forecast" && data && forecastDates.length > 0) {
+          data = filterDataByDate(data, forecastDates[state.forecastDateIndex]);
+        }
         data = aggregateForTimeSeries(data);
         if (data) {
           updateStats(data, state.type, regions, state.groupBy);
@@ -432,11 +571,20 @@ const App = (() => {
           });
         }
       } else if (state.view === "map") {
+        document.getElementById("forecast-date-bar").style.display = "none";
         let data = await loadDataForView(state.type);
-        // Aggregate to daily peak for cleaner map visualization
-        if (data && data.granularity !== "monthly") {
+        // Keep hourly data as-is for the map slider (both historical and forecast)
+        // Only aggregate daily→daily peak; monthly stays unchanged
+        if (data && data.granularity === "daily") {
           data = aggregateDailyPeak(data);
         }
+        // For solar, remove timestamps where all states have 0 MW (nighttime)
+        if (data && state.type === "solar" && data.granularity === "hourly") {
+          data = filterZeroTimestamps(data);
+        }
+        // Update map granularity info bar
+        updateMapInfoBar(data);
+
         if (data && data.timestamps.length > 0) {
           currentWindData = state.type === "wind" ? data : currentWindData;
           currentSolarData = state.type === "solar" ? data : currentSolarData;
@@ -453,7 +601,7 @@ const App = (() => {
           } else if (data.granularity === "monthly") {
             label = formatMonth(ts) + " (Monthly Peak)";
           } else {
-            label = formatDate(ts);
+            label = formatTimestamp(ts);
           }
           document.getElementById("map-time-label").textContent = label;
 
@@ -477,6 +625,7 @@ const App = (() => {
           });
         }
       } else if (state.view === "comparison") {
+        document.getElementById("forecast-date-bar").style.display = "none";
         let windData = await loadDataForView("wind");
         let solarData = await loadDataForView("solar");
         windData = aggregateForTimeSeries(windData);
@@ -484,7 +633,7 @@ const App = (() => {
 
         if (windData && solarData) {
           Charts.renderComparison("chart-comparison", windData, solarData, {
-            region: regions[0] || null,
+            regions,
             groupBy: state.groupBy,
           });
 
@@ -514,7 +663,7 @@ const App = (() => {
     } else if (data.granularity === "monthly") {
       label = formatMonth(ts) + " (Monthly Peak)";
     } else {
-      label = formatDate(ts);
+      label = formatTimestamp(ts);
     }
     document.getElementById("map-time-label").textContent = label;
     MapView.renderMap("chart-map", data.states, data.timestamps, {

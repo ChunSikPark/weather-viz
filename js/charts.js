@@ -45,6 +45,20 @@ const Charts = (() => {
     "#ffb74d", "#a1887f", "#90a4ae", "#dce775", "#4db6ac",
   ];
 
+  // Wind palette — cool / blue tones per region
+  const WIND_PALETTE = [
+    "#4fc3f7", "#42a5f5", "#7986cb", "#4dd0e1", "#4db6ac",
+    "#26c6da", "#5c6bc0", "#29b6f6", "#0097a7", "#0288d1",
+    "#00acc1", "#1565c0", "#00838f", "#3949ab", "#0277bd",
+  ];
+
+  // Solar palette — warm / yellow-orange-red tones per region
+  const SOLAR_PALETTE = [
+    "#ffd54f", "#ffb74d", "#ff8a65", "#e57373", "#f06292",
+    "#ffca28", "#ffa726", "#ff7043", "#ef5350", "#ec407a",
+    "#ffee58", "#ff9800", "#ff5722", "#e53935", "#d81b60",
+  ];
+
   /**
    * Render a time series chart.
    * @param {string} divId - target div id
@@ -131,10 +145,10 @@ const Charts = (() => {
   }
 
   /**
-   * Render wind vs solar comparison overlay.
+   * Render wind vs solar comparison overlay for all selected regions.
    */
   function renderComparison(divId, windData, solarData, options) {
-    const { region = null, groupBy = "national" } = options;
+    const { regions = [], groupBy = "national" } = options;
     const traces = [];
 
     function getValues(data, gb, reg) {
@@ -143,25 +157,47 @@ const Charts = (() => {
       return src[reg] ? src[reg].mw : [];
     }
 
-    const label = region || "National";
+    if (groupBy === "national" || regions.length === 0) {
+      traces.push({
+        x: windData.timestamps,
+        y: getValues(windData, "national", null),
+        type: "scattergl",
+        mode: "lines",
+        name: "Wind — National",
+        line: { color: WIND_COLOR, width: 1.5 },
+      });
+      traces.push({
+        x: solarData.timestamps,
+        y: getValues(solarData, "national", null),
+        type: "scattergl",
+        mode: "lines",
+        name: "Solar — National",
+        line: { color: SOLAR_COLOR, width: 1.5, dash: "dot" },
+      });
+    } else {
+      regions.forEach((region, i) => {
+        const windVals = getValues(windData, groupBy, region);
+        const solarVals = getValues(solarData, groupBy, region);
+        if (windVals.length === 0 && solarVals.length === 0) return;
 
-    traces.push({
-      x: windData.timestamps,
-      y: getValues(windData, groupBy, region),
-      type: "scattergl",
-      mode: "lines",
-      name: `Wind — ${label}`,
-      line: { color: WIND_COLOR, width: 1.5 },
-    });
-
-    traces.push({
-      x: solarData.timestamps,
-      y: getValues(solarData, groupBy, region),
-      type: "scattergl",
-      mode: "lines",
-      name: `Solar — ${label}`,
-      line: { color: SOLAR_COLOR, width: 1.5 },
-    });
+        traces.push({
+          x: windData.timestamps,
+          y: windVals,
+          type: "scattergl",
+          mode: "lines",
+          name: `Wind — ${region}`,
+          line: { color: WIND_PALETTE[i % WIND_PALETTE.length], width: 1.5 },
+        });
+        traces.push({
+          x: solarData.timestamps,
+          y: solarVals,
+          type: "scattergl",
+          mode: "lines",
+          name: `Solar — ${region}`,
+          line: { color: SOLAR_PALETTE[i % SOLAR_PALETTE.length], width: 1.5 },
+        });
+      });
+    }
 
     const layout = {
       ...PLOTLY_LAYOUT_BASE,

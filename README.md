@@ -12,17 +12,21 @@ This project simulates renewable energy (wind and solar) generation across the c
 
 ### Views
 
-- **Time Series** — Interactive line charts by state, ISO region, or national total. Zoom, pan, and range slider. Auto-selects hourly/daily/monthly granularity based on date range.
-- **US Map** — Choropleth map colored by generation (MW) or capacity factor. Shows **daily peak** values (max MW/CF per day) for both wind and solar. Drag the time slider to step through days. Click a state to drill into its time series.
-- **Comparison** — Wind vs solar overlay and stacked area charts showing regional contribution.
+- **Time Series** — Interactive line charts by state, ISO region, or national total. Zoom, pan, and range slider. Auto-selects hourly/daily/monthly granularity based on date range. In forecast mode, a date slider lets you pick a day and see its 24-hour profile.
+- **US Map** — Choropleth map colored by generation (MW) or capacity factor. Shows **hourly** data for ranges ≤3 months, **daily peak** for ≤2 years, **monthly** for longer. Solar nighttime hours (all states = 0 MW) are automatically filtered out. Drag the time slider to step through timestamps. Click a state to drill into its time series.
+- **Comparison** — Wind vs solar overlay for all selected regions (blue palette for wind, warm palette for solar) and stacked area charts showing regional contribution.
 
 ### Controls
 
+All controls are in the left sidebar for easy access:
+
+- **View** — Switch between Time Series, US Map, and Comparison
 - Toggle between wind and solar energy
-- Switch between MW generation and capacity factor
+- Switch between MW generation and capacity factor (hidden in Comparison view)
 - Group by state, ISO region, or national total
 - **Data Source toggle** — switch between Historical and Forecast data as distinct modes (date range hides in forecast mode; Forecast button is greyed out when no forecast data exists)
-- **Aggregation toggle** — choose Hourly (raw), Daily Avg, or Daily Peak when date range is under 90 days; greyed out for longer ranges where data is already pre-averaged
+- **Aggregation toggle** — choose Hourly (raw), Daily Avg, or Daily Peak when date range is under 3 months; greyed out for longer ranges where data is already pre-averaged; hidden in forecast mode
+- **Forecast date slider** — in forecast mode, scrub through the 16 forecast days to see hourly data per day
 - Select specific states or ISO regions to compare
 - Adjustable date range with automatic granularity selection (historical mode only)
 - Shareable URLs — all filter state (including `source=historical|forecast`, `agg=raw|avg|peak`) is encoded in query parameters
@@ -198,3 +202,16 @@ Added an Aggregation toggle in the sidebar for date ranges under 90 days. Users 
 - **`js/charts.js`** — Fixed stacked area chart (Regional Contribution) not rendering: changed `type: "scattergl"` to `type: "scatter"` since WebGL doesn't support `stackgroup`. Added thin line borders between stacked regions. Moved legend inside chart area (top-left with semi-transparent background) to prevent clipping.
 - **`index.html`** — Added references footer with links to published papers and EIA-860 data. Increased time series chart height to 600px.
 - **`css/style.css`** — Added `.references` footer styling.
+
+### 2026-03-16 — Forecast Data, UI Overhaul, Comparison Fix
+
+Added NOAA 16-day forecast data support, moved navigation to sidebar, improved toggle visibility, and fixed comparison view.
+
+**What changed:**
+
+- **`index.html`** — Moved nav tabs from header to sidebar as a "View" control group. Added dashboard description at top of sidebar. Added sublabels to each control group explaining what it changes. Added `id="metric-group"` to Metric toggle. Added forecast date slider bar above chart area.
+- **`js/app.js`** — Added `state.forecastDateIndex` and forecast date slider logic (`updateForecastDateBar()`, `filterDataByDate()`, `updateForecastDateLabel()`). Forecast mode filters hourly data to selected day; partial days (<12h) are skipped. Aggregation toggle hidden in forecast mode. Metric toggle hidden in Comparison view (`updateMetricVisibility()`). Map now shows hourly data for ranges ≤3 months (both historical and forecast); daily data still aggregated to daily peak. Solar map filters out nighttime timestamps (`filterZeroTimestamps()`). Map info bar shows granularity tiers with active one highlighted. Granularity thresholds changed from 90 days to 3 calendar months. Comparison overlay now shows all selected regions (not just first).
+- **`js/charts.js`** — `renderComparison()` updated to accept `regions` array (was singular `region`). Added `WIND_PALETTE` (cool blue tones) and `SOLAR_PALETTE` (warm yellow/orange/red tones) for comparison overlay so wind and solar traces are visually distinct across multiple regions.
+- **`js/data-loader.js`** — Hourly threshold changed from 90 days to 3 calendar months (`Date.setMonth()`). Daily threshold uses `<= 365 * 2`. Granularity calculation uses date-only values (ignores `T23:59:59Z` suffix).
+- **`css/style.css`** — Added `--cyan` CSS variable. Added generic `.toggle-btn.active` cyan highlight for all non-wind/solar toggles. Added `.dashboard-desc`, `.control-sublabel`, `.forecast-date-bar`, `.map-info-bar` styles. Nav tabs styled for sidebar placement.
+- **`scripts/preprocess.py`** — Manifest `date_range` now excludes forecast timestamps (historical only) so default date picker range is correct.
