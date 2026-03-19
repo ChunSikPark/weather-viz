@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-03-16T18:02:50Z",
+  "generated_at": "2026-03-19T14:38:55Z",
   "files": [
     {
       "path": "data/monthly/solar_monthly_2023.json",
@@ -426,14 +426,14 @@
       "type": "solar",
       "granularity": "hourly",
       "period": "forecast",
-      "size_kb": 288.5
+      "size_kb": 289.6
     },
     {
       "path": "data/forecast/wind_forecast.json",
       "type": "wind",
       "granularity": "hourly",
       "period": "forecast",
-      "size_kb": 316.2
+      "size_kb": 317.0
     }
   ],
   "available_states": [
